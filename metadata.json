@@ -1,0 +1,6 @@
+{
+  "name": "JurisPulse - AI-Powered Legal Practice Management System (Lawyer Management System)",
+  "description": "JurisPulse AI-Powered Legal Practice Management System featuring real-time appointment management, distinct persistent client and lawyer profile databases, active litigation cases, practice analytics, and certified executive output report generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
