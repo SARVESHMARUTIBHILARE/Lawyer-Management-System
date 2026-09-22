@@ -348,8 +348,8 @@ Add your project screenshots here:
 | **Bhilare Sarvesh** | `240860131012` | Developer / Project Developer |
 | **Ritesh Bitode**   | `240860131013` | Team Member                   |
 | **Taufeek Khan**    | `240860131058` | Team Member                   |
-| **PASWAN ABHISHEK** | `250860131004` | Team Member                   |
-| **BINDESHWARI**     | —              | Team Member                   |
+| **PASWAN ABHISHEK** | `250863131004` | Team Member                   |
+
 
 ### 🤝 Team
 
