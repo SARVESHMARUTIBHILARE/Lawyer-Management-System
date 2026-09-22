@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print,
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+  #printable-status-report,
+  #printable-status-report * {
+    visibility: visible !important;
+  }
+  #printable-status-report {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
