@@ -13,26 +13,26 @@
 ---
 ### 📸 Screenshots Section 1 ###
 
-<table width="100%">
+<table width="100%">images/a113.png
     <tr>
         <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a11.png title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/11.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/22.jpg title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a10.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a111.png title="Ai " /></td>
 </tr>
  <tr>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/23.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/33.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/34.jpg title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a112.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a113.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a113.png title="Ai " /></td>
 </tr> 
 <tr>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/44.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/45.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/55.jpg title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a114.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a115.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a12.png title="Ai " /></td>
 </tr> 
 <tr>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/56.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/66.jpg title="Ai " /></td>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/67.jpg title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a13.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a14.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a15.png title="Ai " /></td>
 </tr>
 </table>
 
