@@ -13,7 +13,7 @@
 ---
 ### 📸 Screenshots Section 1 ###
 
-<table width="100%">images/a113.png
+<table width="100%">
     <tr>
         <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a11.png title="Ai " /></td>
         <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a10.png title="Ai " /></td>
