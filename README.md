@@ -335,37 +335,8 @@ Lawyer
    │ Reply
    ▼
 Client
-```
 
 Each conversation is associated with the authenticated client and lawyer.
-
----
-
-## 📸 Screenshots
-
-Add your project screenshots here:
-
-```md
-## 📸 Screenshots
-
-### 🏠 Home Page
-![Home Page](./screenshots/home.png)
-
-### 👤 Client Dashboard
-![Client Dashboard](./screenshots/client-dashboard.png)
-
-### ⚖️ Lawyer Dashboard
-![Lawyer Dashboard](./screenshots/lawyer-dashboard.png)
-
-### 💬 Messaging
-![Messaging](./screenshots/messaging.png)
-
-### 📅 Appointments
-![Appointments](./screenshots/appointments.png)
-```
-
----
-
 ## 👨‍💻 Development Team
 
 | Name                | Enrollment No. | Role                          |
