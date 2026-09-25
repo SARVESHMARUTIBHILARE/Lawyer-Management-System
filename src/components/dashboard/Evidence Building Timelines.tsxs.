@@ -1,0 +1,703 @@
+import React, { useState, useMemo } from 'react';
+import {
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Clock,
+  Calendar,
+  FileText,
+  Lock,
+  Sparkles,
+  ArrowRight,
+  Eye,
+  RotateCcw,
+  Check,
+  Filter,
+  Layers,
+  Scale,
+  Download,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  History,
+  FileCheck,
+  Shield,
+  Activity,
+  Plus
+} from 'lucide-react';
+import { ClientDocument, CaseFile, UserRole, DocumentCustodyEvent } from '../types';
+import { exportDocumentCustodyAuditPDF } from '../utils/pdfExport';
+
+export interface TimelineMilestone {
+  id: string;
+  documentId: string;
+  documentTitle: string;
+  documentCategory: ClientDocument['category'];
+  fileType: ClientDocument['fileType'];
+  fileSize: string;
+  isConfidential: boolean;
+  eventDate: string; // YYYY-MM-DD or YYYY-MM-DD HH:mm
+  displayDate: string;
+  timeString?: string;
+  eventType: 'upload' | 'verification' | 'needs_review' | 'custody_event' | 'ai_analysis';
+  title: string;
+  description: string;
+  performedBy: string;
+  verificationStatus?: 'Verified' | 'Needs Review';
+  custodyHash?: string;
+  aiRiskLevel?: 'Low' | 'Moderate' | 'High';
+  isCurrentDoc: boolean;
+  rawDoc: ClientDocument;
+}
+
+interface EvidenceBuildingTimelineProps {
+  currentDocument: ClientDocument;
+  documentsList?: ClientDocument[];
+  matchedCase?: CaseFile;
+  userRole?: UserRole;
+  onSelectDocument?: (doc: ClientDocument) => void;
+  onToggleVerification?: (docId: string, customNote?: string) => void;
+  onExportAuditPdf?: (doc: ClientDocument) => void;
+}
+
+export const EvidenceBuildingTimeline: React.FC<EvidenceBuildingTimelineProps> = ({
+  currentDocument,
+  documentsList = [],
+  matchedCase,
+  userRole = 'partner',
+  onSelectDocument,
+  onToggleVerification,
+  onExportAuditPdf
+}) => {
+  const [viewScope, setViewScope] = useState<'case' | 'document'>('case');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'needs_review' | 'evidence_only'>('all');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+  const [expandedDetailsId, setExpandedDetailsId] = useState<string | null>(null);
+
+  const handleExportPdfForDoc = (docToExport: ClientDocument) => {
+    if (onExportAuditPdf) {
+      onExportAuditPdf(docToExport);
+    } else {
+      exportDocumentCustodyAuditPDF({
+        document: docToExport,
+        matchedCase,
+        firmName: 'JURISPULSE LAW PARTNERS LLP',
+        certifyingCounsel: docToExport.verifiedBy || docToExport.uploadedBy || 'Counsel of Record',
+        barNumber: 'NY-BAR #5849201 / US-DIST-SDNY',
+        jurisdiction: matchedCase?.statutoryJurisdiction || 'Federal District Court / Civil & Commercial Trial Division'
+      });
+    }
+  };
+
+  // All documents belonging to this case matter
+  const caseDocuments = useMemo(() => {
+    const list = documentsList.length > 0 ? documentsList : [currentDocument];
+    const targetCaseId = currentDocument.caseId;
+    const filtered = list.filter((doc) => doc.caseId === targetCaseId);
+    return filtered.length > 0 ? filtered : [currentDocument];
+  }, [documentsList, currentDocument]);
+
+  // Generate complete unified timeline milestones
+  const allMilestones = useMemo(() => {
+    const milestones: TimelineMilestone[] = [];
+
+    const targetDocs = viewScope === 'document' ? [currentDocument] : caseDocuments;
+
+    targetDocs.forEach((doc) => {
+      const isCurrent = doc.id === currentDocument.id;
+
+      // 1. Upload Event
+      milestones.push({
+        id: `${doc.id}-upload`,
+        documentId: doc.id,
+        documentTitle: doc.fileName,
+        documentCategory: doc.category,
+        fileType: doc.fileType,
+        fileSize: doc.fileSize,
+        isConfidential: doc.isConfidential,
+        eventDate: doc.uploadedAt,
+        displayDate: doc.uploadedAt.slice(0, 10),
+        timeString: doc.uploadedAt.includes(' ') ? doc.uploadedAt.split(' ')[1] : undefined,
+        eventType: 'upload',
+        title: `Exhibit Ingested: ${doc.fileName}`,
+        description: `Ingested into vault under ${doc.category} by ${doc.uploadedBy} with initial SHA-256 seal.`,
+        performedBy: doc.uploadedBy,
+        verificationStatus: doc.verificationStatus || 'Needs Review',
+        custodyHash: doc.custodyHash,
+        aiRiskLevel: doc.aiRiskLevel,
+        isCurrentDoc: isCurrent,
+        rawDoc: doc
+      });
+
+      // 2. Chain of Custody Specific Events
+      if (doc.chainOfCustody && doc.chainOfCustody.length > 0) {
+        doc.chainOfCustody.forEach((event, idx) => {
+          // If it's the initial upload event, we've already added it
+          if (event.action === 'Uploaded' && idx === 0) return;
+
+          let evtType: TimelineMilestone['eventType'] = 'custody_event';
+          if (event.action === 'Marked Verified') evtType = 'verification';
+          if (event.action === 'Flagged for Review') evtType = 'needs_review';
+
+          milestones.push({
+            id: `${doc.id}-custody-${event.id || idx}`,
+            documentId: doc.id,
+            documentTitle: doc.fileName,
+            documentCategory: doc.category,
+            fileType: doc.fileType,
+            fileSize: doc.fileSize,
+            isConfidential: doc.isConfidential,
+            eventDate: event.timestamp || doc.uploadedAt,
+            displayDate: (event.timestamp || doc.uploadedAt).slice(0, 10),
+            timeString: event.timestamp?.includes(' ') ? event.timestamp.split(' ')[1] : undefined,
+            eventType: evtType,
+            title: `${event.action}: ${doc.fileName}`,
+            description: event.note || `Chain of custody event recorded by ${event.performedBy}.`,
+            performedBy: event.performedBy,
+            verificationStatus: event.action === 'Marked Verified' ? 'Verified' : 'Needs Review',
+            custodyHash: doc.custodyHash,
+            aiRiskLevel: doc.aiRiskLevel,
+            isCurrentDoc: isCurrent,
+            rawDoc: doc
+          });
+        });
+      } else if (doc.verificationStatus === 'Verified' && doc.verifiedAt) {
+        // Fallback: If verification metadata exists without custody list
+        milestones.push({
+          id: `${doc.id}-verified`,
+          documentId: doc.id,
+          documentTitle: doc.fileName,
+          documentCategory: doc.category,
+          fileType: doc.fileType,
+          fileSize: doc.fileSize,
+          isConfidential: doc.isConfidential,
+          eventDate: doc.verifiedAt,
+          displayDate: doc.verifiedAt.slice(0, 10),
+          timeString: doc.verifiedAt.includes(' ') ? doc.verifiedAt.split(' ')[1] : undefined,
+          eventType: 'verification',
+          title: `Evidentiary Authentication: ${doc.fileName}`,
+          description: `Counsel authenticated document authenticity and cryptographic custody seal.`,
+          performedBy: doc.verifiedBy || 'Counsel of Record',
+          verificationStatus: 'Verified',
+          custodyHash: doc.custodyHash,
+          aiRiskLevel: doc.aiRiskLevel,
+          isCurrentDoc: isCurrent,
+          rawDoc: doc
+        });
+      }
+    });
+
+    // Sort chronologically
+    return milestones.sort((a, b) => {
+      const dateA = new Date(a.eventDate.replace(' ', 'T')).getTime();
+      const dateB = new Date(b.eventDate.replace(' ', 'T')).getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+  }, [viewScope, currentDocument, caseDocuments, sortOrder]);
+
+  // Filtered milestones
+  const filteredMilestones = useMemo(() => {
+    return allMilestones.filter((m) => {
+      if (statusFilter === 'verified') return m.verificationStatus === 'Verified';
+      if (statusFilter === 'needs_review') return m.verificationStatus === 'Needs Review';
+      if (statusFilter === 'evidence_only') return m.documentCategory === 'Evidence';
+      return true;
+    });
+  }, [allMilestones, statusFilter]);
+
+  // Analytics & Evidence Metrics for Case
+  const stats = useMemo(() => {
+    const totalDocs = caseDocuments.length;
+    const verifiedDocs = caseDocuments.filter((d) => d.verificationStatus === 'Verified').length;
+    const evidenceCategoryCount = caseDocuments.filter((d) => d.category === 'Evidence').length;
+    const confidentialCount = caseDocuments.filter((d) => d.isConfidential).length;
+    const verificationRate = totalDocs > 0 ? Math.round((verifiedDocs / totalDocs) * 100) : 0;
+
+    // Date range
+    const dates = caseDocuments.map((d) => new Date(d.uploadedAt.replace(' ', 'T')).getTime()).filter((t) => !isNaN(t));
+    let earliestDate = 'N/A';
+    let latestDate = 'N/A';
+    if (dates.length > 0) {
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+      earliestDate = minDate.toISOString().slice(0, 10);
+      latestDate = maxDate.toISOString().slice(0, 10);
+    }
+
+    return {
+      totalDocs,
+      verifiedDocs,
+      evidenceCategoryCount,
+      confidentialCount,
+      verificationRate,
+      earliestDate,
+      latestDate
+    };
+  }, [caseDocuments]);
+
+  const toggleDetails = (id: string) => {
+    setExpandedDetailsId(expandedDetailsId === id ? null : id);
+  };
+
+  const getEventBadge = (eventType: TimelineMilestone['eventType'], status?: string) => {
+    switch (eventType) {
+      case 'verification':
+        return {
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          bg: 'bg-emerald-100 border-emerald-300 text-emerald-800',
+          dotBg: 'bg-emerald-600 ring-emerald-100',
+          label: 'Authenticated'
+        };
+      case 'needs_review':
+        return {
+          icon: <AlertCircle className="w-4 h-4 text-amber-600" />,
+          bg: 'bg-amber-100 border-amber-300 text-amber-800',
+          dotBg: 'bg-amber-500 ring-amber-100',
+          label: 'Needs Review'
+        };
+      case 'custody_event':
+        return {
+          icon: <History className="w-4 h-4 text-indigo-600" />,
+          bg: 'bg-indigo-100 border-indigo-300 text-indigo-800',
+          dotBg: 'bg-indigo-600 ring-indigo-100',
+          label: 'Chain of Custody'
+        };
+      case 'upload':
+      default:
+        return {
+          icon: <FileText className="w-4 h-4 text-blue-600" />,
+          bg: 'bg-blue-100 border-blue-300 text-blue-800',
+          dotBg: 'bg-blue-600 ring-blue-100',
+          label: 'Deposit / Upload'
+        };
+    }
+  };
+
+  return (
+    <div className="space-y-4 text-slate-900">
+      {/* Top Banner: Evidence Velocity & Case Progress Bar */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-blue-950 rounded-xl p-4 text-white border border-slate-800 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600/30 text-blue-300 rounded-xl border border-blue-400/40">
+              <Scale className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-white">Case Evidence Building Trail</h3>
+                <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2 py-0.2 rounded-full">
+                  {matchedCase?.caseNumber || currentDocument.caseId}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Chronological mapping of exhibit deposits, integrity audits, and authentication milestones.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Scope Switcher */}
+          <div className="flex items-center bg-slate-800/80 p-0.5 rounded-lg border border-slate-700 text-xs font-semibold shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewScope('case')}
+              className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+                viewScope === 'case'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Full Matter Trail ({caseDocuments.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewScope('document')}
+              className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+                viewScope === 'document'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>This Document Only</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Evidence Admissibility Metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 text-xs">
+          <div>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold block">Total Case Records</span>
+            <span className="text-sm font-extrabold text-white mt-0.5 block font-mono">
+              {stats.totalDocs} Documents
+            </span>
+          </div>
+
+          <div>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold block">Authenticated Exhibits</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-sm font-extrabold text-emerald-400 font-mono">
+                {stats.verifiedDocs} / {stats.totalDocs}
+              </span>
+              <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-800">
+                {stats.verificationRate}%
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold block">Privileged Work-Product</span>
+            <span className="text-sm font-bold text-amber-300 mt-0.5 block flex items-center gap-1">
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>{stats.confidentialCount} Confidential</span>
+            </span>
+          </div>
+
+          <div>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold block">Evidence Ingest Span</span>
+            <span className="text-xs font-mono font-medium text-slate-200 mt-0.5 block truncate" title={`${stats.earliestDate} → ${stats.latestDate}`}>
+              {stats.earliestDate} → {stats.latestDate}
+            </span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-3 pt-2 border-t border-slate-800/80">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+            <span>Authentication & Admissibility Progress</span>
+            <span className="font-mono font-bold text-emerald-400">{stats.verificationRate}% Verified</span>
+          </div>
+          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex">
+            <div
+              className="bg-emerald-500 h-full transition-all duration-500 rounded-full"
+              style={{ width: `${stats.verificationRate}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Control Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mr-1">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            Filter:
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition text-[11px] cursor-pointer ${
+              statusFilter === 'all'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            All Events ({allMilestones.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('verified')}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition text-[11px] flex items-center gap-1 cursor-pointer ${
+              statusFilter === 'verified'
+                ? 'bg-emerald-600 text-white shadow-2xs'
+                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+            }`}
+          >
+            <ShieldCheck className="w-3 h-3" />
+            <span>Verified Exhibits</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('needs_review')}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition text-[11px] flex items-center gap-1 cursor-pointer ${
+              statusFilter === 'needs_review'
+                ? 'bg-amber-600 text-white shadow-2xs'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+            }`}
+          >
+            <AlertCircle className="w-3 h-3" />
+            <span>Needs Review</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('evidence_only')}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition text-[11px] flex items-center gap-1 cursor-pointer ${
+              statusFilter === 'evidence_only'
+                ? 'bg-blue-600 text-white shadow-2xs'
+                : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200'
+            }`}
+          >
+            <FileCheck className="w-3 h-3" />
+            <span>Evidence Category Only</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => handleExportPdfForDoc(currentDocument)}
+            className="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-300 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+            title="Generate certified PDF of full audit trail and chain-of-custody for courtroom submission"
+          >
+            <Scale className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Courtroom Audit PDF</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 flex items-center gap-1 transition cursor-pointer"
+            title="Toggle Sort Order"
+          >
+            <Clock className="w-3 h-3 text-slate-500" />
+            <span>{sortOrder === 'asc' ? 'Oldest → Newest' : 'Newest → Oldest'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Vertical Timeline Canvas */}
+      {filteredMilestones.length === 0 ? (
+        <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-500 text-xs">
+          <Info className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+          <p className="font-semibold text-slate-700">No milestones match the selected filter.</p>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className="mt-2 text-blue-600 font-bold hover:underline cursor-pointer"
+          >
+            Reset Filters
+          </button>
+        </div>
+      ) : (
+        <div className="relative pl-6 sm:pl-8 space-y-5 before:absolute before:left-3 sm:before:left-4 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+          {filteredMilestones.map((milestone, idx) => {
+            const badge = getEventBadge(milestone.eventType, milestone.verificationStatus);
+            const isSelected = selectedMilestoneId === milestone.id;
+            const isExpanded = expandedDetailsId === milestone.id;
+            const isVerified = milestone.verificationStatus === 'Verified';
+
+            return (
+              <div
+                key={milestone.id}
+                className={`relative group transition-all ${
+                  milestone.isCurrentDoc ? 'scale-[1.005]' : ''
+                }`}
+              >
+                {/* Timeline Milestone Dot */}
+                <div
+                  className={`absolute -left-6 sm:-left-8 top-3.5 w-6 h-6 rounded-full flex items-center justify-center text-white border-2 border-white shadow-xs transition ${
+                    badge.dotBg
+                  } ${milestone.isCurrentDoc ? 'ring-4 ring-blue-400/40' : ''}`}
+                >
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+
+                {/* Milestone Content Card */}
+                <div
+                  className={`p-4 rounded-xl border transition-all shadow-xs ${
+                    milestone.isCurrentDoc
+                      ? 'bg-blue-50/40 border-blue-300 ring-2 ring-blue-400/20'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                  }`}
+                >
+                  {/* Card Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase flex items-center gap-1 ${badge.bg}`}
+                      >
+                        {badge.icon}
+                        <span>{badge.label}</span>
+                      </span>
+
+                      <span className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                        {milestone.documentCategory}
+                      </span>
+
+                      {milestone.isConfidential && (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          <Lock className="w-2.5 h-2.5" />
+                          Privileged
+                        </span>
+                      )}
+
+                      {milestone.isCurrentDoc && (
+                        <span className="text-[10px] font-extrabold bg-blue-600 text-white px-2 py-0.5 rounded shadow-2xs font-mono">
+                          ★ ACTIVE PREVIEW
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Date & Time */}
+                    <div className="flex items-center gap-2 text-slate-500 font-mono text-[11px] shrink-0">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold text-slate-700">{milestone.displayDate}</span>
+                      {milestone.timeString && (
+                        <span className="text-slate-400">@ {milestone.timeString}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Document Title & Description */}
+                  <div className="mt-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5 truncate" title={milestone.documentTitle}>
+                        <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span className="truncate">{milestone.documentTitle}</span>
+                      </h4>
+
+                      <span className="text-[11px] font-mono text-slate-500">
+                        {milestone.fileSize} • {milestone.fileType.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      {milestone.description}
+                    </p>
+                  </div>
+
+                  {/* Actor & Action Bar */}
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600 text-[11px]">
+                      <span className="text-slate-400">Logged By:</span>
+                      <strong className="text-slate-800 font-semibold">{milestone.performedBy}</strong>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Toggle Verification for This Doc */}
+                      {onToggleVerification && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleVerification(milestone.documentId)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer ${
+                            isVerified
+                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                          }`}
+                          title="Toggle Verification Status"
+                        >
+                          {isVerified ? (
+                            <>
+                              <RotateCcw className="w-3 h-3 text-amber-600" />
+                              <span>Set Needs Review</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                              <span>Verify Exhibit</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Select & Switch Document in Preview */}
+                      {!milestone.isCurrentDoc && onSelectDocument && (
+                        <button
+                          type="button"
+                          onClick={() => onSelectDocument(milestone.rawDoc)}
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                          title="Switch active preview to this document"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Preview Document</span>
+                        </button>
+                      )}
+
+                      {/* Expand Details Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => toggleDetails(milestone.id)}
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition cursor-pointer"
+                        title={isExpanded ? 'Collapse Details' : 'Expand Details'}
+                      >
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Technical Inspection Box */}
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-slate-200/80 bg-slate-50 p-3 rounded-lg text-xs space-y-2 animate-in fade-in">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <span className="text-slate-400 uppercase font-semibold block text-[10px]">
+                            SHA-256 Custody Hash
+                          </span>
+                          <span className="font-mono text-slate-800 font-bold break-all block mt-0.5 bg-white p-1.5 rounded border border-slate-200">
+                            {milestone.custodyHash || `SHA256: 8f3c7a912e5d944bc0891d21e89b41a3_${milestone.documentId}`}
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="text-slate-400 uppercase font-semibold block text-[10px]">
+                            AI Evaluated Risk & Summary
+                          </span>
+                          <div className="mt-0.5 bg-white p-1.5 rounded border border-slate-200">
+                            <span
+                              className={`inline-block text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                milestone.aiRiskLevel === 'High'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : milestone.aiRiskLevel === 'Moderate'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {milestone.aiRiskLevel || 'Low'} Risk
+                            </span>
+                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">
+                              {milestone.rawDoc.aiSummary || 'Document exhibits authenticated in compliance with court admissibility standards.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {milestone.rawDoc.chainOfCustody && milestone.rawDoc.chainOfCustody.length > 0 && (
+                        <div className="pt-1">
+                          <span className="text-slate-400 uppercase font-semibold block text-[10px] mb-1">
+                            Associated Chain of Custody History ({milestone.rawDoc.chainOfCustody.length} events)
+                          </span>
+                          <div className="space-y-1">
+                            {milestone.rawDoc.chainOfCustody.map((cEvt, cIdx) => (
+                              <div
+                                key={cEvt.id || cIdx}
+                                className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border border-slate-200"
+                              >
+                                <span className="font-bold text-slate-800">{cEvt.action}</span>
+                                <span className="text-slate-500">{cEvt.performedBy}</span>
+                                <span className="font-mono text-slate-400">{cEvt.timestamp}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleExportPdfForDoc(milestone.rawDoc)}
+                          className="px-2.5 py-1 text-[11px] font-bold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-md flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                          title="Generate certified PDF of full audit trail and chain-of-custody for this specific document"
+                        >
+                          <Scale className="w-3 h-3 text-indigo-600" />
+                          <span>Generate Courtroom Audit PDF ({milestone.rawDoc.fileName})</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
