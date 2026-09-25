@@ -15,7 +15,7 @@
 
 <table width="100%">
     <tr>
-        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a11.jpg title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a11.png title="Ai " /></td>
         <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/11.jpg title="Ai " /></td>
         <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/22.jpg title="Ai " /></td>
 </tr>
