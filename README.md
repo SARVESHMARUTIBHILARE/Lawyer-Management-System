@@ -36,6 +36,54 @@
 </tr>
 </table>
 
+### 📸 Screenshots Section 2 ###
+
+<table width="100%">
+    <tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a16.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/a17.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/ab.png title="Ai " /></td>
+</tr>
+ <tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/abc.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/b01.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/bc.png title="Ai " /></td>
+</tr> 
+<tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/bcd.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/cd.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/cde.png title="Ai " /></td>
+</tr> 
+<tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/def.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/ef.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/efg.png title="Ai " /></td>
+</tr>
+</table>
+### 📸 Screenshots Section 3 ###
+
+<table width="100%">
+    <tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/ghi.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/hij.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/ijk.png title="Ai " /></td>
+</tr>
+ <tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/jkl.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/klm.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/lmn.png title="Ai " /></td>
+</tr> 
+<tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/mno.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/nop.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/opq.png title="Ai " /></td>
+</tr> 
+<tr>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/pqr.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/qrs.png title="Ai " /></td>
+        <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/rst.png title="Ai " /></td>
+</tr>
+</table>
 
 ## 📌 About The Project
 
