@@ -60,6 +60,7 @@
         <td width="33%"><img alt="Screenshot of Lawyer management system "src=images/efg.png title="Ai " /></td>
 </tr>
 </table>
+
 ### 📸 Screenshots Section 3 ###
 
 <table width="100%">
